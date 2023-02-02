@@ -83,10 +83,6 @@ func followBlocks(ctx context.Context, client access.AccessAPIClient, execClient
 			log.Fatalf("could not get block header for height %d: %v", lastHeight+1, err)
 		}
 
-		// if header.Block.Height <= lastHeight {
-		// 	time.Sleep(500 * time.Millisecond)
-		// 	continue
-		// }
 		lastHeight = header.Block.Height
 
 		log.Printf("%d: %x", header.Block.Height, header.Block.Id)
@@ -117,7 +113,7 @@ func getExecutionData(ctx context.Context, blockID []byte, client executiondata.
 		return nil, fmt.Errorf("could not get execution data: %w", err)
 	}
 
-	log.Printf("got execution data: %v", resp.GetBlockExecutionData())
+	// log.Printf("got execution data: %v", resp.GetBlockExecutionData())
 
 	events, err := extractEvents(resp.GetBlockExecutionData())
 	if err != nil {
