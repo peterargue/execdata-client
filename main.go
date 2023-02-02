@@ -56,9 +56,15 @@ func main() {
 	followBlocks(ctx, accessClient, execClient)
 }
 
-func followBlocks(ctx context.Context, client access.AccessAPIClient, execClient executiondata.ExecutionDataAPIClient) {
+func followBlocks(ctx context.Context, accessClient access.AccessAPIClient, execClient executiondata.ExecutionDataAPIClient) {
+	resp, err := accessClient.GetNetworkParameters(ctx, &access.GetNetworkParametersRequest{})
+	if err != nil {
+		log.Fatalf("could not get network parameters: %v", err)
+	}
+	chain := flow.ChainID(resp.ChainId).Chain()
+
 	// get initial height
-	header, err := client.GetLatestBlockHeader(ctx, &access.GetLatestBlockHeaderRequest{IsSealed: true})
+	header, err := accessClient.GetLatestBlockHeader(ctx, &access.GetLatestBlockHeaderRequest{IsSealed: true})
 	if err != nil {
 		log.Fatalf("could not get latest block header: %v", err)
 	}
@@ -73,7 +79,7 @@ func followBlocks(ctx context.Context, client access.AccessAPIClient, execClient
 		}
 
 		// get the next block, blocking until it's available
-		header, err := client.GetBlockHeaderByHeight(ctx, &access.GetBlockHeaderByHeightRequest{Height: lastHeight + 1})
+		header, err := accessClient.GetBlockHeaderByHeight(ctx, &access.GetBlockHeaderByHeightRequest{Height: lastHeight + 1})
 		if status.Code(err) == codes.NotFound {
 			time.Sleep(500 * time.Millisecond)
 			continue
@@ -88,7 +94,7 @@ func followBlocks(ctx context.Context, client access.AccessAPIClient, execClient
 
 		var accounts []flow.Address
 		for {
-			accounts, err = getChangedAccounts(ctx, header.Block.Id, execClient)
+			accounts, err = getModifiedAccounts(ctx, header.Block.Id, execClient, chain)
 			if err != nil {
 				if status.Code(err) == codes.NotFound || strings.Contains(err.Error(), "not found") {
 					time.Sleep(500 * time.Millisecond)
@@ -106,13 +112,13 @@ func followBlocks(ctx context.Context, client access.AccessAPIClient, execClient
 	}
 }
 
-func getChangedAccounts(ctx context.Context, blockID []byte, client executiondata.ExecutionDataAPIClient) ([]flow.Address, error) {
+func getModifiedAccounts(ctx context.Context, blockID []byte, client executiondata.ExecutionDataAPIClient, chain flow.Chain) ([]flow.Address, error) {
 	resp, err := client.GetExecutionDataByBlockID(ctx, &executiondata.GetExecutionDataByBlockIDRequest{BlockId: blockID})
 	if err != nil {
 		return nil, fmt.Errorf("could not get execution data: %w", err)
 	}
 
-	updates, err := extractTrieUpdates(resp.GetBlockExecutionData())
+	updates, err := extractTrieUpdates(resp.GetBlockExecutionData(), chain)
 	if err != nil {
 		return nil, fmt.Errorf("could not convert execution data: %w", err)
 	}
@@ -138,25 +144,21 @@ func getChangedAccounts(ctx context.Context, blockID []byte, client executiondat
 	return addresses, nil
 }
 
-func extractTrieUpdates(m *entities.BlockExecutionData) ([]*ledger.TrieUpdate, error) {
+func extractTrieUpdates(m *entities.BlockExecutionData, chain flow.Chain) ([]*ledger.TrieUpdate, error) {
 	if m == nil {
 		return nil, convert.ErrEmptyMessage
 	}
 
 	updates := []*ledger.TrieUpdate{}
-	for i, chunk := range m.GetChunkExecutionData() {
-		u := chunk.GetTrieUpdate()
-
-		// skip chunks with no updates
-		if u == nil {
-			continue
-		}
-
-		update, err := convert.MessageToTrieUpdate(u)
+	for i, c := range m.GetChunkExecutionData() {
+		chunk, err := convert.MessageToChunkExecutionData(c, chain)
 		if err != nil {
-			return nil, fmt.Errorf("could not convert trie update for chunk %d: %w", i, err)
+			return nil, fmt.Errorf("could not convert chunk %d: %w", i, err)
 		}
-		updates = append(updates, update)
+
+		if chunk.TrieUpdate != nil {
+			updates = append(updates, chunk.TrieUpdate)
+		}
 	}
 
 	return updates, nil
