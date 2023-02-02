@@ -17,6 +17,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/onflow/flow-go/engine/common/rpc/convert"
+	"github.com/onflow/flow-go/ledger"
 	"github.com/onflow/flow-go/model/flow"
 )
 
@@ -56,15 +57,13 @@ func main() {
 }
 
 func followBlocks(ctx context.Context, client access.AccessAPIClient, execClient executiondata.ExecutionDataAPIClient) {
-	lastHeight := uint64(0)
-
 	// get initial height
 	header, err := client.GetLatestBlockHeader(ctx, &access.GetLatestBlockHeaderRequest{IsSealed: true})
 	if err != nil {
 		log.Fatalf("could not get latest block header: %v", err)
 	}
 
-	lastHeight = header.Block.Height
+	lastHeight := header.Block.Height
 
 	for {
 		select {
@@ -87,9 +86,9 @@ func followBlocks(ctx context.Context, client access.AccessAPIClient, execClient
 
 		log.Printf("%d: %x", header.Block.Height, header.Block.Id)
 
-		var events []flow.Event
+		var accounts []flow.Address
 		for {
-			events, err = getExecutionData(ctx, header.Block.Id, execClient)
+			accounts, err = getChangedAccounts(ctx, header.Block.Id, execClient)
 			if err != nil {
 				if status.Code(err) == codes.NotFound || strings.Contains(err.Error(), "not found") {
 					time.Sleep(500 * time.Millisecond)
@@ -101,44 +100,64 @@ func followBlocks(ctx context.Context, client access.AccessAPIClient, execClient
 			break
 		}
 
-		for _, event := range events {
-			log.Printf("%d %v %d %v", event.TransactionIndex, event.TransactionID, event.EventIndex, event.Type)
+		for _, address := range accounts {
+			fmt.Printf("0x%s\n", address)
 		}
 	}
 }
 
-func getExecutionData(ctx context.Context, blockID []byte, client executiondata.ExecutionDataAPIClient) ([]flow.Event, error) {
+func getChangedAccounts(ctx context.Context, blockID []byte, client executiondata.ExecutionDataAPIClient) ([]flow.Address, error) {
 	resp, err := client.GetExecutionDataByBlockID(ctx, &executiondata.GetExecutionDataByBlockIDRequest{BlockId: blockID})
 	if err != nil {
 		return nil, fmt.Errorf("could not get execution data: %w", err)
 	}
 
-	// log.Printf("got execution data: %v", resp.GetBlockExecutionData())
-
-	events, err := extractEvents(resp.GetBlockExecutionData())
+	updates, err := extractTrieUpdates(resp.GetBlockExecutionData())
 	if err != nil {
 		return nil, fmt.Errorf("could not convert execution data: %w", err)
 	}
 
-	return events, nil
+	accounts := map[flow.Address]struct{}{}
+	for _, update := range updates {
+		for _, payload := range update.Payloads {
+			key, err := payload.Key()
+			if err != nil {
+				return nil, fmt.Errorf("could not get key: %w", err)
+			}
+
+			address := flow.BytesToAddress(key.KeyParts[0].Value)
+			accounts[address] = struct{}{}
+		}
+	}
+
+	addresses := make([]flow.Address, 0, len(accounts))
+	for address := range accounts {
+		addresses = append(addresses, address)
+	}
+
+	return addresses, nil
 }
 
-func bytesToID(b []byte) flow.Identifier {
-	var id flow.Identifier
-	copy(id[:], b)
-	return id
-}
-
-func extractEvents(m *entities.BlockExecutionData) ([]flow.Event, error) {
+func extractTrieUpdates(m *entities.BlockExecutionData) ([]*ledger.TrieUpdate, error) {
 	if m == nil {
 		return nil, convert.ErrEmptyMessage
 	}
 
-	events := []flow.Event{}
-	for _, chunk := range m.GetChunkExecutionData() {
-		e := convert.MessagesToEvents(chunk.GetEvents())
-		events = append(events, e...)
+	updates := []*ledger.TrieUpdate{}
+	for i, chunk := range m.GetChunkExecutionData() {
+		u := chunk.GetTrieUpdate()
+
+		// skip chunks with no updates
+		if u == nil {
+			continue
+		}
+
+		update, err := convert.MessageToTrieUpdate(u)
+		if err != nil {
+			return nil, fmt.Errorf("could not convert trie update for chunk %d: %w", i, err)
+		}
+		updates = append(updates, update)
 	}
 
-	return events, nil
+	return updates, nil
 }

@@ -409,8 +409,6 @@ github.com/onflow/flow-core-contracts/lib/go/templates v0.11.2-0.20221214150253-
 github.com/onflow/flow-ft/lib/go/contracts v0.5.0 h1:Cg4gHGVblxcejfNNG5Mfj98Wf4zbY76O0Y28QB0766A=
 github.com/onflow/flow-go v0.29.8-access-state-stream h1:bT4C2R6mHDzaQd7MgZaL4GcqGFgKiQ4/RmCEZzWD/dw=
 github.com/onflow/flow-go v0.29.8-access-state-stream/go.mod h1:uGmboSl2tMwz6C89J9vtgK0vPXz7ibeWxY9luI5LzBk=
-github.com/onflow/flow-go v0.29.9 h1:pL9ITh1axdkoNHCiN775guQNzboagC5KZzGreca+6Xc=
-github.com/onflow/flow-go v0.29.9/go.mod h1:uGmboSl2tMwz6C89J9vtgK0vPXz7ibeWxY9luI5LzBk=
 github.com/onflow/flow-go-sdk v0.31.3 h1:CytMRiTayXRlkRNXQ9Cw6ZcKoOIK6+QtXk4iUb8f0zQ=
 github.com/onflow/flow-go-sdk v0.31.3/go.mod h1:cqj2QShwC4DqxWzrg0+U7KxE2k7OJDGBxh8XZrJ4v5E=
 github.com/onflow/flow-go/crypto v0.24.4 h1:SwEtoVS2TidCIHYCZMgQ7U2YsqhI9upnw94fhdHTubM=
