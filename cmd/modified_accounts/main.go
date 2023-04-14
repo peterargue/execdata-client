@@ -21,15 +21,19 @@ import (
 	"github.com/onflow/flow-go/model/flow"
 )
 
-const (
-	// Mainnet (must be running an ssh tunnel to an7)
-	accessURL        = "access-007.mainnet21.nodes.onflow.org:9000"
-	executiondataURL = "localhost:9003"
+// This app demonstrates how to use the Execution Data API to poll for BlockExecutionData.
+// It uses the execution data to get a list of accounts that were modified during the block.
 
-	// Localnet
-	// accessURL        = "localhost:3569"
-	// executiondataURL = "localhost:3709"
+const (
+	accessURL = "access-003.devnet43.nodes.onflow.org:9000"
 )
+
+type Tracker struct {
+	accessClient access.AccessAPIClient
+	execClient   executiondata.ExecutionDataAPIClient
+
+	chain flow.Chain
+}
 
 func main() {
 	ctx, cancel := context.WithCancel(context.Background())
@@ -40,31 +44,27 @@ func main() {
 		log.Fatalf("could not connect to access api server: %v", err)
 	}
 
-	accessClient := access.NewAccessAPIClient(conn)
-
-	conn, err = grpc.Dial(
-		executiondataURL,
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(1024*1024*16)),
-	)
-	if err != nil {
-		log.Fatalf("could not connect to exec data api server: %v", err)
+	t := &Tracker{
+		accessClient: access.NewAccessAPIClient(conn),
+		execClient:   executiondata.NewExecutionDataAPIClient(conn),
 	}
 
-	execClient := executiondata.NewExecutionDataAPIClient(conn)
-
-	followBlocks(ctx, accessClient, execClient)
-}
-
-func followBlocks(ctx context.Context, accessClient access.AccessAPIClient, execClient executiondata.ExecutionDataAPIClient) {
-	resp, err := accessClient.GetNetworkParameters(ctx, &access.GetNetworkParametersRequest{})
+	// get the network's chainID
+	resp, err := t.accessClient.GetNetworkParameters(ctx, &access.GetNetworkParametersRequest{})
 	if err != nil {
 		log.Fatalf("could not get network parameters: %v", err)
 	}
-	chain := flow.ChainID(resp.ChainId).Chain()
+	t.chain = flow.ChainID(resp.ChainId).Chain()
 
+	err = t.FollowBlocks(ctx)
+	if err != nil {
+		log.Fatalf("could not follow blocks: %v", err)
+	}
+}
+
+func (t *Tracker) FollowBlocks(ctx context.Context) error {
 	// get initial height
-	header, err := accessClient.GetLatestBlockHeader(ctx, &access.GetLatestBlockHeaderRequest{IsSealed: true})
+	header, err := t.accessClient.GetLatestBlockHeader(ctx, &access.GetLatestBlockHeaderRequest{IsSealed: true})
 	if err != nil {
 		log.Fatalf("could not get latest block header: %v", err)
 	}
@@ -74,18 +74,19 @@ func followBlocks(ctx context.Context, accessClient access.AccessAPIClient, exec
 	for {
 		select {
 		case <-ctx.Done():
-			return
+			return nil
 		default:
 		}
 
 		// get the next block, blocking until it's available
-		header, err := accessClient.GetBlockHeaderByHeight(ctx, &access.GetBlockHeaderByHeightRequest{Height: lastHeight + 1})
-		if status.Code(err) == codes.NotFound {
-			time.Sleep(500 * time.Millisecond)
-			continue
-		}
+		header, err := t.accessClient.GetBlockHeaderByHeight(ctx, &access.GetBlockHeaderByHeightRequest{Height: lastHeight + 1})
 		if err != nil {
-			log.Fatalf("could not get block header for height %d: %v", lastHeight+1, err)
+			if status.Code(err) == codes.NotFound {
+				time.Sleep(500 * time.Millisecond)
+				continue
+			}
+
+			return fmt.Errorf("could not get block header for height %d: %w", lastHeight+1, err)
 		}
 
 		lastHeight = header.Block.Height
@@ -94,31 +95,33 @@ func followBlocks(ctx context.Context, accessClient access.AccessAPIClient, exec
 
 		var accounts []flow.Address
 		for {
-			accounts, err = getModifiedAccounts(ctx, header.Block.Id, execClient, chain)
+			resp, err := t.execClient.GetExecutionDataByBlockID(ctx, &executiondata.GetExecutionDataByBlockIDRequest{BlockId: header.Block.Id})
 			if err != nil {
 				if status.Code(err) == codes.NotFound || strings.Contains(err.Error(), "not found") {
 					time.Sleep(500 * time.Millisecond)
 					continue
 				}
-				log.Fatalf("failed to get execution data: %v", err)
+				return fmt.Errorf("could not get execution data: %w", err)
+			}
+
+			accounts, err = getModifiedAccounts(resp.GetBlockExecutionData(), t.chain)
+			if err != nil {
+				return fmt.Errorf("failed to get execution data: %w", err)
 			}
 
 			break
 		}
 
-		for _, address := range accounts {
-			fmt.Printf("0x%s\n", address)
-		}
+		log.Printf("modified accounts: %d", len(accounts))
+		// for _, address := range accounts {
+		// 	fmt.Printf("0x%s\n", address)
+		// }
+		time.Sleep(800 * time.Millisecond)
 	}
 }
 
-func getModifiedAccounts(ctx context.Context, blockID []byte, client executiondata.ExecutionDataAPIClient, chain flow.Chain) ([]flow.Address, error) {
-	resp, err := client.GetExecutionDataByBlockID(ctx, &executiondata.GetExecutionDataByBlockIDRequest{BlockId: blockID})
-	if err != nil {
-		return nil, fmt.Errorf("could not get execution data: %w", err)
-	}
-
-	updates, err := extractTrieUpdates(resp.GetBlockExecutionData(), chain)
+func getModifiedAccounts(executionData *entities.BlockExecutionData, chain flow.Chain) ([]flow.Address, error) {
+	updates, err := extractTrieUpdates(executionData, chain)
 	if err != nil {
 		return nil, fmt.Errorf("could not convert execution data: %w", err)
 	}

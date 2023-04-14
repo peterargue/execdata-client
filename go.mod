@@ -3,8 +3,8 @@ module github.com/peterargue/execdata-client
 go 1.19
 
 require (
-	github.com/onflow/flow-go v0.29.8-access-state-stream
-	github.com/onflow/flow/protobuf/go/flow v0.3.2-0.20221202093946-932d1c70e288
+	github.com/onflow/flow-go v0.29.17
+	github.com/onflow/flow/protobuf/go/flow v0.3.2-0.20230330183547-d0dd18f6f20d
 	google.golang.org/grpc v1.52.3
 )
 
@@ -65,7 +65,7 @@ require (
 	github.com/multiformats/go-multihash v0.2.1 // indirect
 	github.com/multiformats/go-varint v0.0.6 // indirect
 	github.com/onflow/atree v0.4.0 // indirect
-	github.com/onflow/cadence v0.31.3 // indirect
+	github.com/onflow/cadence v0.31.5-account-linking-improved-pragma // indirect
 	github.com/onflow/flow-go-sdk v0.31.3 // indirect
 	github.com/onflow/flow-go/crypto v0.24.4 // indirect
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
@@ -103,7 +103,7 @@ require (
 	golang.org/x/text v0.5.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220609144429-65e65417b02f // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/genproto v0.0.0-20221118155620-16455021b5e6 // indirect
+	google.golang.org/genproto v0.0.0-20221207170731-23e4bf6bdc37 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	lukechampine.com/blake3 v1.1.7 // indirect
