@@ -4,8 +4,7 @@ This is a PoC for using the Execution State Streaming API. There are examples un
 
 ## Usage
 
-Note: This assumes you have a SSH tunnel between your local machine and the AN running the State Stream API.
-
+This will connect to `access-003.devnet43.nodes.onflow.org` and stream all `FlowToken` events.
 ```
-go run examples/events_streaming/*.go
+go run examples/events_streaming/*.go --host access-003.devnet43.nodes.onflow.org:9000
 ```
