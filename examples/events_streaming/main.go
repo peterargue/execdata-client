@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 
 	"github.com/onflow/flow-go/model/flow"
@@ -17,13 +16,8 @@ const (
 	accessURL = "access-003.devnet43.nodes.onflow.org:9000"
 )
 
-type Tracker struct {
-	execClient *client.ExecutionDataClient
-}
-
 func main() {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := context.Background()
 
 	chain, err := client.GetChain(ctx, accessURL)
 	if err != nil {
@@ -35,35 +29,23 @@ func main() {
 		log.Fatalf("could not create execution data client: %v", err)
 	}
 
-	t := &Tracker{
-		execClient: execClient,
-	}
-
-	err = t.FollowBlocks(ctx)
-	if err != nil {
-		log.Fatalf("could not follow blocks: %v", err)
-	}
-}
-
-func (t *Tracker) FollowBlocks(ctx context.Context) error {
-
-	sub, err := t.execClient.SubscribeEvents(ctx, flow.ZeroID, 0, client.EventFilter{
+	sub, err := execClient.SubscribeEvents(ctx, flow.ZeroID, 0, client.EventFilter{
 		Contracts: []string{"A.7e60df042a9c0868.FlowToken"},
 	})
 	if err != nil {
-		return fmt.Errorf("could not subscribe to execution data: %w", err)
+		log.Fatalf("could not subscribe to execution data: %v", err)
 	}
 
 	for {
 		select {
 		case <-ctx.Done():
-			return nil
+			return
 		case response, ok := <-sub.Channel():
 			if sub.Err() != nil {
-				return fmt.Errorf("error in subscription: %w", sub.Err())
+				log.Fatalf("error in subscription: %v", sub.Err())
 			}
 			if !ok {
-				return fmt.Errorf("subscription closed")
+				log.Fatalf("subscription closed")
 			}
 
 			log.Printf("block %d %s:", response.Height, response.BlockID)

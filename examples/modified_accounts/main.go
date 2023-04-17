@@ -36,8 +36,7 @@ type Tracker struct {
 }
 
 func main() {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := context.Background()
 
 	conn, err := grpc.Dial(accessURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
