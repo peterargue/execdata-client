@@ -71,7 +71,7 @@ func (c *RestClient) SubscribeEvents(
 
 	url.RawQuery = query.Encode()
 
-	conn, _, err := websocket.DefaultDialer.Dial(url.String(), nil)
+	conn, _, err := websocket.DefaultDialer.DialContext(ctx, url.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -82,6 +82,14 @@ func (c *RestClient) SubscribeEvents(
 		defer conn.Close()
 
 		for {
+			select {
+			case <-ctx.Done():
+				// immediately close the connection
+				// TODO: implement a proper graceful disconnect
+				return
+			default:
+			}
+
 			var resp *rawEventsResponse
 			err := conn.ReadJSON(&resp)
 			if err == io.EOF {
