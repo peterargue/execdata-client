@@ -13,8 +13,7 @@ import (
 // It requests all events from the testnet FlowToken contract.
 
 const (
-	// accessURL = "access-003.devnet47.nodes.onflow.org:9000"
-	accessURL = "localhost:4004"
+	accessURL = "localhost:4004" // REST endpoint on localnet AN1
 )
 
 func main() {
