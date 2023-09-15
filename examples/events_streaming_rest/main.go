@@ -10,7 +10,7 @@ import (
 )
 
 // This app demonstrates how to use the Execution Data API to stream Events.
-// It requests all events from the testnet FlowToken contract.
+// It requests all events from the localnet FlowToken contract.
 
 const (
 	accessURL = "localhost:4004" // REST endpoint on localnet AN1
