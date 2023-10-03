@@ -9,7 +9,7 @@ import (
 	"github.com/peterargue/execdata-client/client"
 )
 
-// This app demonstrates how to use the Execution Data API to stream Events.
+// This app demonstrates how to use the Websockets Execution Data API to stream Events.
 // It requests all events from the testnet FlowToken contract.
 
 const (
