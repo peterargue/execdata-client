@@ -9,12 +9,11 @@ import (
 	"github.com/peterargue/execdata-client/client"
 )
 
-// This app demonstrates how to use the Websockets Execution Data API to stream Events.
-// It requests all events from the testnet FlowToken contract.
+// This app demonstrates how to use the Execution Data API to stream Events.
+// It requests all events from the localnet FlowToken contract.
 
 const (
-	// accessURL = "access-003.devnet47.nodes.onflow.org:9000"
-	accessURL = "localhost:4004"
+	accessURL = "localhost:4004" // REST endpoint on localnet AN1
 )
 
 func main() {
