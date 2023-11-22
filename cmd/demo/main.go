@@ -24,7 +24,7 @@ func main() {
 		filterContracts,
 		filterAddresses string
 
-	flag.StringVar(&accessURL, "host", "access-003.devnet43.nodes.onflow.org:9000", "execution data api url.")
+	flag.StringVar(&accessURL, "host", "access-001.devnet49.nodes.onflow.org:9000", "execution data api url.")
 	flag.StringVar(&filterEvents, "events", "", "comma separated list of events to filter for.")
 	flag.StringVar(&filterContracts, "contracts", "", "comma separated list of contracts to filter events by.")
 	flag.StringVar(&filterAddresses, "addresses", "", "comma separated list of addresses to filter events by.")

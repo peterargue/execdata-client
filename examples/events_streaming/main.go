@@ -13,7 +13,7 @@ import (
 // It requests all events from the testnet FlowToken contract.
 
 const (
-	accessURL = "access-003.devnet43.nodes.onflow.org:9000"
+	accessURL = "access-001.devnet49.nodes.onflow.org:9000"
 )
 
 func main() {
