@@ -15,7 +15,7 @@ import (
 // It uses the execution data to get a list of accounts that were modified during the block.
 
 const (
-	accessURL = "access-003.devnet43.nodes.onflow.org:9000"
+	accessURL = "access-001.devnet49.nodes.onflow.org:9000"
 )
 
 func main() {

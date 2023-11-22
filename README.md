@@ -4,7 +4,7 @@ This is a PoC for using the Execution State Streaming API. There are examples un
 
 ## Usage
 
-This will connect to `access-003.devnet43.nodes.onflow.org` and stream all `FlowToken` events.
+This will connect to `access-001.devnet49.nodes.onflow.org:9000` and stream all `FlowToken` events.
 ```
-go run cmd/demo/*.go --host access-003.devnet43.nodes.onflow.org:9000
+go run cmd/demo/*.go --host access-001.devnet49.nodes.onflow.org:9000
 ```
