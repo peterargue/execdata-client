@@ -55,7 +55,7 @@ func main() {
 }
 
 func followBlocks(ctx context.Context, execClient *client.ExecutionDataClient, filter client.EventFilter) error {
-	sub, err := execClient.SubscribeEvents(ctx, flow.ZeroID, 0, filter)
+	sub, err := execClient.SubscribeEvents(ctx, flow.ZeroID, 0, filter, 1)
 	if err != nil {
 		return fmt.Errorf("could not subscribe to execution data: %w", err)
 	}
