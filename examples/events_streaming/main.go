@@ -29,9 +29,15 @@ func main() {
 		log.Fatalf("could not create execution data client: %v", err)
 	}
 
-	sub, err := execClient.SubscribeEvents(ctx, flow.ZeroID, 0, client.EventFilter{
-		Contracts: []string{"A.7e60df042a9c0868.FlowToken"},
-	})
+	sub, err := execClient.SubscribeEvents(
+		ctx,
+		flow.ZeroID,
+		0,
+		client.EventFilter{
+			Contracts: []string{"A.7e60df042a9c0868.FlowToken"},
+		},
+		1,
+	)
 	if err != nil {
 		log.Fatalf("could not subscribe to execution data: %v", err)
 	}
